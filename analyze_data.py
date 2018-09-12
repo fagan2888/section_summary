@@ -37,19 +37,23 @@ def recent_effort(row, cols):
             hw = val
     return 2 * (disc + lab) + hw
 
-def for_assignment(assign):
+def for_assignments(*assigns):
     def query(x, cols):
-        if assign in cols:
-            return x[cols.index(assign)]
-        else:
-            return 0
+        for assign in assigns:
+            if assign in cols:
+                return x[cols.index(assign)]
+        return 0
     return query
+
+FINAL = ["final"]
+MIDTERM_1 = ["mt1", "midterm1"]
+MIDTERM_2 = ["mt2", "midterm2"]
 
 QUERIES = [
     ("score", lambda x, cols: sum(val for col, val in zip(cols, x) if not col[:3] in ("lab", "dis"))),
-    ("final", for_assignment("final")),
-    ("midterm 2", for_assignment("midterm2")),
-    ("midterm 1", for_assignment("midterm1")),
+    ("final", for_assignments(*FINAL)),
+    ("midterm 2", for_assignments(*MIDTERM_2)),
+    ("midterm 1", for_assignments(*MIDTERM_1)),
     ("proj", by_cat("proj")),
     ("disc", by_cat("disc")),
     ("lab", by_cat("lab")),
@@ -57,8 +61,16 @@ QUERIES = [
     ("recent effort", recent_effort)
 ]
 
+def matches_exam(column):
+    result = False
+    for exam in FINAL + MIDTERM_1 + MIDTERM_2:
+        result |= column == exam
+    return result
+
 def run_queries(data):
-    frame = pd.DataFrame(np.concatenate([np.array([list(data.apply(lambda x: fn(x, list(data.columns)), axis=1)) for _, fn in QUERIES]).T, np.array(data)], axis=1),
-                         index=data.index, columns=[x for x, _ in QUERIES] + list(data.columns))
+    queries = np.array([list(data.apply(lambda x: fn(x, list(data.columns)), axis=1)) for _, fn in QUERIES]).T
+    without_exams = data[data.columns[~matches_exam(data.columns)]]
+    frame = pd.DataFrame(np.concatenate([queries, without_exams], axis=1),
+                         index=data.index, columns=[x for x, _ in QUERIES] + list(without_exams.columns))
     frame = remove_all_0s(frame)
     return frame.sort_values(list(frame.columns))
