@@ -58,7 +58,7 @@ QUERIES = [
 ]
 
 def run_queries(data):
-    frame = pd.DataFrame(np.array([list(data.apply(lambda x: fn(x, list(data.columns)), axis=1)) for _, fn in QUERIES]).T,
-                         index=data.index, columns=[x for x, _ in QUERIES])
+    frame = pd.DataFrame(np.concatenate([np.array([list(data.apply(lambda x: fn(x, list(data.columns)), axis=1)) for _, fn in QUERIES]).T, np.array(data)], axis=1),
+                         index=data.index, columns=[x for x, _ in QUERIES] + list(data.columns))
     frame = remove_all_0s(frame)
     return frame.sort_values(list(frame.columns))
