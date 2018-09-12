@@ -47,13 +47,13 @@ def for_assignment(assign):
 
 QUERIES = [
     ("score", lambda x, cols: sum(val for col, val in zip(cols, x) if not col[:3] in ("lab", "dis"))),
+    ("final", for_assignment("final")),
+    ("midterm 2", for_assignment("midterm2")),
+    ("midterm 1", for_assignment("midterm1")),
+    ("proj", by_cat("proj")),
     ("disc", by_cat("disc")),
     ("lab", by_cat("lab")),
     ("hw", by_cat("hw")),
-    ("proj", by_cat("proj")),
-    ("midterm 1", for_assignment("midterm1")),
-    ("midterm 2", for_assignment("midterm2")),
-    ("final", for_assignment("final")),
     ("recent effort", recent_effort)
 ]
 
