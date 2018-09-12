@@ -34,7 +34,8 @@ def get_scripts(output):
 
 
 def get_scores(cookies_path, course_number, email):
-    p = Popen(['curl', '-H', 'cookie:session=' + get_okpy_cookie(cookies_path), 'https://okpy.org/admin/course/%s/%s' % (course_number, email)], stdout=PIPE)
+    print("Downloading page corresponding to email", email, file=sys.stderr)
+    p = Popen(['curl', '-H', 'cookie:session=' + get_okpy_cookie(cookies_path), 'https://okpy.org/admin/course/%s/%s' % (course_number, email)], stdout=PIPE, stderr=PIPE)
 
     stdout, _ = p.communicate()
 
