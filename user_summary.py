@@ -42,7 +42,7 @@ def get_scores(cookies_path, course_number, email):
 
     scripts = get_scripts(stdout.decode('utf-8'))
 
-    all_scores = [x for x in scripts if "scores" in x]
+    all_scores = [x for x in scripts if "allScores" in x]
 
     if all_scores == []:
         print(email, "does not exist in https://okpy.org/admin/course/%s" % course_number, file=sys.stderr)
