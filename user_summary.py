@@ -1,6 +1,7 @@
 
 import urllib
 from subprocess import Popen, PIPE
+import sys
 
 def get_okpy_cookie(cookies_path):
     with open(cookies_path) as f:
@@ -42,10 +43,20 @@ def get_scores(cookies_path, course_number, email):
     scripts = get_scripts(stdout.decode('utf-8'))
 
     all_scores = [x for x in scripts if "scores" in x]
+
+    if all_scores == []:
+        print(email, "does not exist in https://okpy.org/admin/course/%s" % course_number, file=sys.stderr)
+        return None
+
     assert len(all_scores) == 1
     all_scores, = all_scores
     all_scores = all_scores[:-1]
     return eval("{" + "".join(all_scores.split("\n")[1:]))
 
 def get_scores_for_all_emails(cookies_path, course_number, emails):
-    return {email : get_scores(cookies_path, course_number, email) for email in emails}
+    result = {}
+    for email in emails:
+        scores = get_scores(cookies_path, course_number, email)
+        if scores is not None:
+            result[email] = scores
+    return result
