@@ -1,6 +1,7 @@
 
 import re
 import urllib
+import urllib3, urllib3.util.ssl_
 from subprocess import Popen, PIPE
 import sys
 
@@ -35,22 +36,34 @@ def get_scripts(output):
     return scripts
 
 
-def get_scores(cookie, course_number, email):
-    print("Downloading page corresponding to email", email, file=sys.stderr)
-    p = Popen(['curl', '-H', 'cookie:session=' + cookie, 'https://okpy.org/admin/course/%s/%s' % (course_number, email)], stdout=PIPE, stderr=PIPE)
+def get_all_pages(course_number, cookie, *emails):
+    ssl_context = urllib3.util.ssl_.create_urllib3_context()
+    pool = urllib3.HTTPSConnectionPool("okpy.org", ssl_context=ssl_context)
 
-    stdout, _ = p.communicate()
-    stdout = stdout.decode('utf-8')
+    requests = {}
+    for email in emails:
+        requests[email] = pool.request(
+            'GET',
+            '/admin/course/%s/%s' % (course_number, email),
+            headers={"connection" : "keep-alive", "cookie" : "session=" + cookie}
+        )
+    results = {}
+    for email in emails:
+        print("Downloading page corresponding to email", email, file=sys.stderr)
+        results[email] = requests[email].data.decode('utf-8')
+    return results
 
-    scripts = get_scripts(stdout)
+def get_scores(page_contents, email):
+
+    scripts = get_scripts(page_contents)
 
     all_scores = [x for x in scripts if "allScores" in x]
 
     if all_scores == []:
-        print(email, "does not exist in https://okpy.org/admin/course/%s" % course_number, file=sys.stderr)
+        print(email, "does not exist", file=sys.stderr)
         return None, None
 
-    name = re.search(r'<h3 class="widget-user-username">([^<]*)</h3>', stdout).group(1)
+    name = re.search(r'<h3 class="widget-user-username">([^<]*)</h3>', page_contents).group(1)
 
     assert len(all_scores) == 1
     all_scores, = all_scores
@@ -60,8 +73,9 @@ def get_scores(cookie, course_number, email):
 def get_scores_for_all_emails(cookies_path, course_number, emails):
     cookie = get_okpy_cookie(cookies_path)
     result = {}
+    all_pages = get_all_pages(course_number, cookie, *emails)
     for email in emails:
-        name, scores = get_scores(cookie, course_number, email)
+        name, scores = get_scores(all_pages[email], email)
         if scores is not None:
             result[name] = scores
     return result
