@@ -35,9 +35,9 @@ def get_scripts(output):
     return scripts
 
 
-def get_scores(cookies_path, course_number, email):
+def get_scores(cookie, course_number, email):
     print("Downloading page corresponding to email", email, file=sys.stderr)
-    p = Popen(['curl', '-H', 'cookie:session=' + get_okpy_cookie(cookies_path), 'https://okpy.org/admin/course/%s/%s' % (course_number, email)], stdout=PIPE, stderr=PIPE)
+    p = Popen(['curl', '-H', 'cookie:session=' + cookie, 'https://okpy.org/admin/course/%s/%s' % (course_number, email)], stdout=PIPE, stderr=PIPE)
 
     stdout, _ = p.communicate()
     stdout = stdout.decode('utf-8')
@@ -58,9 +58,10 @@ def get_scores(cookies_path, course_number, email):
     return name, eval("{" + "".join(all_scores.split("\n")[1:]))
 
 def get_scores_for_all_emails(cookies_path, course_number, emails):
+    cookie = get_okpy_cookie(cookies_path)
     result = {}
     for email in emails:
-        name, scores = get_scores(cookies_path, course_number, email)
+        name, scores = get_scores(cookie, course_number, email)
         if scores is not None:
             result[name] = scores
     return result
