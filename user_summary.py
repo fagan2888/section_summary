@@ -1,4 +1,5 @@
 
+import re
 import urllib
 from subprocess import Popen, PIPE
 import sys
@@ -47,17 +48,19 @@ def get_scores(cookies_path, course_number, email):
 
     if all_scores == []:
         print(email, "does not exist in https://okpy.org/admin/course/%s" % course_number, file=sys.stderr)
-        return None
+        return None, None
+
+    name = re.search(r'<h3 class="widget-user-username">([^<]*)</h3>', stdout).group(1)
 
     assert len(all_scores) == 1
     all_scores, = all_scores
     all_scores = all_scores[:-1]
-    return eval("{" + "".join(all_scores.split("\n")[1:]))
+    return name, eval("{" + "".join(all_scores.split("\n")[1:]))
 
 def get_scores_for_all_emails(cookies_path, course_number, emails):
     result = {}
     for email in emails:
-        scores = get_scores(cookies_path, course_number, email)
+        name, scores = get_scores(cookies_path, course_number, email)
         if scores is not None:
-            result[email] = scores
+            result[name] = scores
     return result
