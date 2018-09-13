@@ -39,8 +39,9 @@ def get_scores(cookies_path, course_number, email):
     p = Popen(['curl', '-H', 'cookie:session=' + get_okpy_cookie(cookies_path), 'https://okpy.org/admin/course/%s/%s' % (course_number, email)], stdout=PIPE, stderr=PIPE)
 
     stdout, _ = p.communicate()
+    stdout = stdout.decode('utf-8')
 
-    scripts = get_scripts(stdout.decode('utf-8'))
+    scripts = get_scripts(stdout)
 
     all_scores = [x for x in scripts if "allScores" in x]
 
