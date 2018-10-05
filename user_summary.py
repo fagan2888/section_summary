@@ -3,6 +3,8 @@ import re
 import urllib3
 import urllib3.util.ssl_
 import sys
+import functools
+from multiprocessing import Pool
 
 def get_okpy_cookie(cookies_path):
     with open(cookies_path) as f:
@@ -34,23 +36,20 @@ def get_scripts(output):
             current_script.append(line.strip())
     return scripts
 
-
-def get_all_pages(course_number, cookie, *emails):
+def request(course_number, cookie, email):
     ssl_context = urllib3.util.ssl_.create_urllib3_context()
     pool = urllib3.HTTPSConnectionPool("okpy.org", ssl_context=ssl_context)
+    print("Downloading page corresponding to email", email, file=sys.stderr)
+    return email, pool.request(
+        'GET',
+        '/admin/course/%s/%s' % (course_number, email),
+        headers={"connection" : "keep-alive", "cookie" : "session=" + cookie}
+    ).data.decode('utf-8')
 
-    requests = {}
-    for email in emails:
-        requests[email] = pool.request(
-            'GET',
-            '/admin/course/%s/%s' % (course_number, email),
-            headers={"connection" : "keep-alive", "cookie" : "session=" + cookie}
-        )
-    results = {}
-    for email in emails:
-        print("Downloading page corresponding to email", email, file=sys.stderr)
-        results[email] = requests[email].data.decode('utf-8')
-    return results
+def get_all_pages(course_number, cookie, *emails):
+
+    function = functools.partial(request, course_number, cookie)
+    return dict(Pool(len(emails)).map(function, emails))
 
 def get_scores(page_contents, email):
 
