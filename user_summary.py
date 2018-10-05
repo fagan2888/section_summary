@@ -1,8 +1,7 @@
 
 import re
-import urllib
-import urllib3, urllib3.util.ssl_
-from subprocess import Popen, PIPE
+import urllib3
+import urllib3.util.ssl_
 import sys
 
 def get_okpy_cookie(cookies_path):
