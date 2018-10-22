@@ -49,7 +49,8 @@ def request(course_number, cookie, email):
 def get_all_pages(course_number, cookie, *emails):
 
     function = functools.partial(request, course_number, cookie)
-    return dict(Pool(len(emails)).map(function, emails))
+    with Pool(min(len(emails), 20)) as p:
+        return dict(p.map(function, emails))
 
 def get_scores(page_contents, email):
 
