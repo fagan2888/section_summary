@@ -7,22 +7,26 @@ from multiprocessing.pool import ThreadPool
 try: import urllib.request as urllib_request  # Python 3
 except ImportError: import urllib2 as urllib_request  # Python 2
 
+OKPY_DOMAIN_NAME = "okpy.org"
+
 def urlopen(url, *args, **kwargs):
     cookie = kwargs.pop('cookie', None)
     opener = urllib_request.build_opener()
     if cookie is not None: opener.addheaders.append(('Cookie', cookie))
     return opener.open(url, *args, **kwargs)
 
-def get_okpy_cookie(cookies_path):
+def get_okpy_cookies(cookies_path):
+    result = []
     with open(cookies_path) as f:
         for line in f:
             columns = line.split()
             if len(columns) < 4:
                 continue
             site, *_, cookie_name, cookie = columns
-            if site == "okpy.org" and cookie_name == "session":
-                return cookie
-    assert False, "cookie not found"
+            if site == OKPY_DOMAIN_NAME:
+                result.append((cookie_name, cookie))
+    assert len(result) > 0, "cookie not found"
+    return result
 
 def get_scripts(output):
     scripts = []
@@ -43,14 +47,15 @@ def get_scripts(output):
             current_script.append(line.strip())
     return scripts
 
-def request(course_number, cookie, email):
+def request(course_number, cookies, email):
     print("Downloading page corresponding to email", email, file=sys.stderr)
-    response = urlopen('https://okpy.org/admin/course/%s/%s' % (course_number, email), cookie="session=" + cookie)
+    assert all(map(lambda cookie: len(cookie) == 2, cookies)), "cookies must be (name, value) pairs"
+    response = urlopen('https://%s/admin/course/%s/%s' % (OKPY_DOMAIN_NAME, course_number, email), cookie="; ".join(map(lambda cookie: "=".join(cookie), cookies)))
     return email, response.read().decode('utf-8')
 
-def get_all_pages(course_number, cookie, *emails):
+def get_all_pages(course_number, cookies, *emails):
 
-    function = functools.partial(request, course_number, cookie)
+    function = functools.partial(request, course_number, cookies)
     with ThreadPool(min(len(emails), 20)) as p:
         return dict(p.map(function, emails))
 
@@ -72,9 +77,9 @@ def get_scores(page_contents, email):
     return name, eval("{" + "".join(all_scores.split("\n")[1:]))
 
 def get_scores_for_all_emails(cookies_path, course_number, emails):
-    cookie = get_okpy_cookie(cookies_path)
+    cookies = get_okpy_cookies(cookies_path)
     result = {}
-    all_pages = get_all_pages(course_number, cookie, *emails)
+    all_pages = get_all_pages(course_number, cookies, *emails)
     for email in emails:
         name, scores = get_scores(all_pages[email], email)
         if scores is not None:
