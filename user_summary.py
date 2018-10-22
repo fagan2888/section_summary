@@ -1,10 +1,17 @@
 
 import re
-import urllib3
-import urllib3.util.ssl_
 import sys
 import functools
 from multiprocessing.pool import ThreadPool
+
+try: import urllib.request as urllib_request  # Python 3
+except ImportError: import urllib2 as urllib_request  # Python 2
+
+def urlopen(url, *args, **kwargs):
+    cookie = kwargs.pop('cookie', None)
+    opener = urllib_request.build_opener()
+    if cookie is not None: opener.addheaders.append(('Cookie', cookie))
+    return opener.open(url, *args, **kwargs)
 
 def get_okpy_cookie(cookies_path):
     with open(cookies_path) as f:
@@ -37,14 +44,9 @@ def get_scripts(output):
     return scripts
 
 def request(course_number, cookie, email):
-    ssl_context = urllib3.util.ssl_.create_urllib3_context()
-    pool = urllib3.HTTPSConnectionPool("okpy.org", ssl_context=ssl_context)
     print("Downloading page corresponding to email", email, file=sys.stderr)
-    return email, pool.request(
-        'GET',
-        '/admin/course/%s/%s' % (course_number, email),
-        headers={"connection" : "keep-alive", "cookie" : "session=" + cookie}
-    ).data.decode('utf-8')
+    response = urlopen('https://okpy.org/admin/course/%s/%s' % (course_number, email), cookie="session=" + cookie)
+    return email, response.read().decode('utf-8')
 
 def get_all_pages(course_number, cookie, *emails):
 
