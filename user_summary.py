@@ -4,7 +4,7 @@ import urllib3
 import urllib3.util.ssl_
 import sys
 import functools
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 def get_okpy_cookie(cookies_path):
     with open(cookies_path) as f:
@@ -49,7 +49,7 @@ def request(course_number, cookie, email):
 def get_all_pages(course_number, cookie, *emails):
 
     function = functools.partial(request, course_number, cookie)
-    with Pool(min(len(emails), 20)) as p:
+    with ThreadPool(min(len(emails), 20)) as p:
         return dict(p.map(function, emails))
 
 def get_scores(page_contents, email):
