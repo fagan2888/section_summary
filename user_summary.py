@@ -69,7 +69,7 @@ def request(course_number, cookies, email):
 def get_all_pages(course_number, cookies, *emails):
 
     function = functools.partial(request, course_number, cookies)
-    with ThreadPool(min(len(emails), 20)) as p:
+    with ThreadPool(min(len(emails), int(os.environ.get('OMP_NUM_THREADS', 20)))) as p:
         return dict(p.map(function, emails))
 
 def get_scores(page_contents, email):
