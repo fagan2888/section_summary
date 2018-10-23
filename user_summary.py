@@ -1,5 +1,6 @@
-
+import os
 import re
+import ssl
 import sys
 import functools
 from multiprocessing.pool import ThreadPool
@@ -7,13 +8,25 @@ from multiprocessing.pool import ThreadPool
 try: import urllib.request as urllib_request  # Python 3
 except ImportError: import urllib2 as urllib_request  # Python 2
 
+HTTPS_VERIFY_ENVVAR = 'PYTHONHTTPSVERIFY'
 OKPY_DOMAIN_NAME = "okpy.org"
 
 def urlopen(url, *args, **kwargs):
     cookie = kwargs.pop('cookie', None)
-    opener = urllib_request.build_opener()
+    headers = []
+    if not sys.flags.ignore_environment and os.environ.get(HTTPS_VERIFY_ENVVAR) in ('0', 'no', 'false', 'False', 'disable', 'Disable'):
+        headers.append(urllib_request.HTTPSHandler(context=ssl._create_unverified_context()))
+    opener = urllib_request.build_opener(*headers)
     if cookie is not None: opener.addheaders.append(('Cookie', cookie))
-    return opener.open(url, *args, **kwargs)
+    result = None
+    try:
+        result = opener.open(url, *args, **kwargs)
+    except urllib_request.URLError as ex:
+        if isinstance(ex.reason, ssl.SSLError):
+            msg = "Error verifying the host's SSL certificate. You can bypass SSL verification AT YOUR OWN RISK by setting the environment variable %s=%s." % (HTTPS_VERIFY_ENVVAR, 0)
+            raise ex.reason.__class__(ex.reason.errno, msg) from ex
+        raise
+    return result
 
 def get_okpy_cookies(cookies_path):
     result = []
