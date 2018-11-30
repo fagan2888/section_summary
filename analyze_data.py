@@ -94,8 +94,7 @@ def matches_exam(column):
 def run_queries(data):
     queries = np.array([list(data.apply(lambda x: fn(x, list(data.columns)), axis=1)) for _, fn in QUERIES]).T
     without_exams = data[data.columns[~matches_exam(data.columns)]]
-    print(np.array(total(data)))
-    frame = pd.DataFrame(np.concatenate([[np.array(total(data))], queries, without_exams], axis=1),
+    frame = pd.DataFrame(np.concatenate([np.array([total(data)]).T, queries, without_exams], axis=1),
                          index=data.index, columns=["Total"] + [x for x, _ in QUERIES] + list(without_exams.columns))
     frame = remove_all_0s(frame)
     return frame.sort_values(list(frame.columns))
