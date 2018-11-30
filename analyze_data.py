@@ -9,7 +9,7 @@ def get_columns(all_scores):
 def sanitize_scores(cols, scores):
     results = np.zeros(len(cols))
     for k, v in scores.items():
-        results[cols.index(k)] = max(v.get('total', 0), v.get('effort', 0))
+        results[cols.index(k)] = max(v.get('total', 0), v.get('effort', 0)) + max(v.get('composition', 0), v.get('revision', 0))
     return results
 
 def remove_all_0s(data):
