@@ -49,8 +49,32 @@ FINAL = ["final"]
 MIDTERM_1 = ["mt1", "midterm1"]
 MIDTERM_2 = ["mt2", "midterm2"]
 
+def total(data):
+    discussion = sum(data[col] for col in data if col[:4] == "disc")
+    lab = sum(data[col] for col in data if col[:3] == "lab" and col[3] != 'c')
+    labcheckoff = sum(data[col] for col in data if col[:4] == "labc")
+    hw = sum(data[col] for col in data if col[:2] == "hw")
+    proj = sum(data[col] for col in data if col[:4] == "proj" or "checkpoint" in col)
+    mt1 = data.midterm1 + data.midterm1extra
+    mt2 = data.midterm2
+
+    def midterm_recovery(score, recovery, max_score):
+        half_score = max_score / 2
+        max_recovery = (half_score - score).clip(0, 10000) / 2
+        return score + pd.DataFrame([recovery, max_recovery]).min(0)
+
+    participation = discussion + lab + labcheckoff
+    particip_points = participation.clip(0, 10)
+    particip_recovery = participation.clip(10, 30) - 10
+
+    recovered_mt1 = midterm_recovery(mt1, particip_recovery, 40)
+    recovered_mt2 = midterm_recovery(mt2, particip_recovery, 50)
+
+    final = 0 # not released
+
+    return recovered_mt1 + recovered_mt2 + final + proj + hw + particip_points
+
 QUERIES = [
-    ("score", lambda x, cols: sum(val for col, val in zip(cols, x) if not col[:3] in ("lab", "dis"))),
     ("final", for_assignments(*FINAL)),
     ("midterm 2", for_assignments(*MIDTERM_2)),
     ("midterm 1", for_assignments(*MIDTERM_1)),
@@ -70,7 +94,8 @@ def matches_exam(column):
 def run_queries(data):
     queries = np.array([list(data.apply(lambda x: fn(x, list(data.columns)), axis=1)) for _, fn in QUERIES]).T
     without_exams = data[data.columns[~matches_exam(data.columns)]]
-    frame = pd.DataFrame(np.concatenate([queries, without_exams], axis=1),
-                         index=data.index, columns=[x for x, _ in QUERIES] + list(without_exams.columns))
+    print(np.array(total(data)))
+    frame = pd.DataFrame(np.concatenate([[np.array(total(data))], queries, without_exams], axis=1),
+                         index=data.index, columns=["Total"] + [x for x, _ in QUERIES] + list(without_exams.columns))
     frame = remove_all_0s(frame)
     return frame.sort_values(list(frame.columns))
